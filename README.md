@@ -8,7 +8,7 @@ usage: dsml [-h] [-R] [-m] [-e [EXTENSIONS [EXTENSIONS ...]]]
             [--source SOURCE] [--destination DESTINATION]
             [N [N ...]]
 
-Randomly selected files and split them into training, testing and validation
+Take randomly selected files and split them into training, testing and validation
 subfolders, according to user specified percentages.
 
 positional arguments:
