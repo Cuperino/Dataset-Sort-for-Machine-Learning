@@ -32,7 +32,7 @@ import shutil
 
 # Parse CLI Arguments
 parser = argparse.ArgumentParser(prog="dsml",
-    description='Randomly selected files and split them into training, testing and validation subfolders, according to user specified percentages.',
+    description='Take randomly selected files and split them into training, testing and validation subfolders, according to user specified percentages.',
     epilog="dsml - Dataset Sort for Machine Learning by Javier O. Cordero Pérez, licensed under the MIT License",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
