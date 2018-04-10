@@ -1,5 +1,5 @@
 # dsml - Dataset Sort for Machine Learning
-by Javier O. Cordero Pérez, licensed under the MIT License 
+By Javier O. Cordero Pérez <javier@imaginary.tech>, licensed under the MIT License 
 
 Usage
 -------------
