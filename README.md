@@ -3,6 +3,7 @@ by Javier O. Cordero Pérez, licensed under the MIT License
 
 Usage
 -------------
+```
 usage: dsml [-h] [-R] [-m] [-e [EXTENSIONS [EXTENSIONS ...]]]
             [--source SOURCE] [--destination DESTINATION]
             [N [N ...]]
@@ -25,3 +26,4 @@ optional arguments:
   --source SOURCE       path to source folder (default: ./)
   --destination DESTINATION
                         path to destination folder (default: ./)
+```
