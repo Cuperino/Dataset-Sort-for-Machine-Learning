@@ -27,122 +27,136 @@
 import argparse
 import random
 import os
-from os import walk
+# from os import walk
+import shutil
 
-# Argument parsing
+# Parse CLI Arguments
 parser = argparse.ArgumentParser(prog="dsml",
-    description='Organize randomly selected files from a folder into training, testing and validation subfolder according to user specified percentages.',
+    description='Randomly selected files and split them into training, testing and validation subfolders, according to user specified percentages.',
+    epilog="dsml - Dataset Sort for Machine Learning by Javier O. Cordero Pérez, licensed under the MIT License",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('integers', metavar='N', type=int, nargs='*', help='specify percentage groups in which to split the files')
+
+parser.add_argument('integers', metavar='N', type=int, nargs='*', default='60 20 20', help='specify percentage groups in which to split the files: [train] [test] [validate]')
 # parser.add_argument('labels', metavar='N', type=open, nargs='*', help='specify labels of percentage groups')
-parser.add_argument('-R', dest='recursive', action='store_true', help='grab files from subdirectories, recursively')
+parser.add_argument('-R', dest='recursive', action='store_true', help='search files from subdirectories, recursively')
 parser.add_argument('-m', dest='move', action='store_true', help='move files, default="copy files"')
-parser.add_argument('-F', dest='force', action='store_true', help='empty output folders if they contain files')
-parser.add_argument('--source', default='./', help='path to source folder')
-parser.add_argument('--dest', default='./', help='path to destination folder')
-# parser.add_argument('--path', help= 'path to destination folder')
+# parser.add_argument('-cl', dest='clear', action='store_true', help='empty output folders if they contain files')
+parser.add_argument('-e', dest='extensions', nargs='*', default='.png .PNG .jpg .JPG .jpeg .JPEG', help='specify file extensions to filter with')
+parser.add_argument('--source', dest='source', default='./', help='path to source folder')
+parser.add_argument('--destination', dest='destination', default='./', help='path to destination folder')
 args = parser.parse_args()
 
 # Get fractions' denominator: the sum of all inputed percentages
-numerators = args.integers
-# denominator_n = sum(args.integers)
+if isinstance(args.integers[0], str):
+    numerators = args.integers.split(' ')
+else:
+    numerators = args.integers
+# denominator = sum(args.integers)
 # labels = args.labels
 recursive = args.recursive
-move = args.move
-force = args.force
-sourcePath = args.source
-outputPath = args.dest
+copy = not args.move
+# clear = args.clear
 
-# if (len(labels)==0):
-#   labels = numerators
-# if (len(labels)!=len(numerators)):
-#   print("There should be as many labels as numerators.")
-#   exit()
+# Parse extensions as tuples
+extensionFormats = tuple(args.extensions)
 
-if len(numerators) != 0:
-    if numerators[0] is not None:
-        trainPercentage = numerators[0]
-    else:
-        trainPercentage = 60
-    if numerators[1] is not None:
-        testPercentage = numerators[1]
-    else:
-        testPercentage = 20
-    if numerators[2] is not None:
-        validatePercentage = numerators[2]
-    else:
-        validatePercentage = 20
+# Add '/' at end of source and destination paths
+if args.source.endswith(('/')):
+    sourcePath = args.source
 else:
-    trainPercentage = 60
+    sourcePath = args.source+'/'
+if args.destination.endswith(('/')):
+    outputPath = args.destination
+else:
+    outputPath = args.destination+'/'
+trainPercentage = int(numerators[0])
+
+# Deduce remaining percentage values if not all values are present.
+if numerators[1] is not None:
+    testPercentage = int(numerators[1])
+else:
     testPercentage = 20
+if numerators[2] is not None:
+    validatePercentage = int(numerators[2])
+else:
     validatePercentage = 20
 
-# Set defaults for non-specified values
-if trainPercentage is None:
-    trainPercentage = 60
-    testPercentage = 20
-    validatePercentage = 20
-elif testPercentage is None:
-    remainder = 100-trainPercentage
-    testPercentage = remainder/2
-    validatePercentage = remainder/2
-elif validatePercentage is None:
-    validatePercentage = 100-(trainPercentage+testPercentage)
+trainPercentage /= 100
+testPercentage /= 100
+validatePercentage /= 100
 
-# Validate
+# VALIDATE
+
 # Validate percentages
-if trainPercentage<0 or testPercentage<0 or validatePercentage<0:
-    print("Invalid percentages specified. Exiting...")
+if len(numerators)>3:
+    print("You must specify up to three ")
     exit()
 
+# Validate labels
+# if len(labels)==0:
+#   labels = numerators
+# if len(labels)!=len(numerators):
+#   print("You must specify as many lables as fraction numerators. Exiting...")
+#   exit()
 
-# Process
+# Validate percentages
+if trainPercentage<0 or testPercentage<0 or validatePercentage<0:
+    print("Invalid percentate values. Exiting...")
+    exit()
+
+# PROCESS
+
 # Prepare output folders
-# Make directories to contain sets if directories don't exist.
-outPaths = [outputPath+"train", outputPath+"test", outputPath+"validate"]
+# Create set subdirectories if they don't exist
+orginalPath = os.path.dirname(os.path.abspath(__file__))
+os.chdir(outputPath)
+fullPath = os.path.dirname(os.path.abspath(__file__))
+outPaths = [fullPath+"/train", fullPath+"/test", fullPath+"/validate"]
 for path in outPaths:
     if not os.path.exists(path):
         os.makedirs(path)
-# If directories have pre-existing content, do nothing unless force is true.
-exitFlag = False
+
+# # If directories have pre-existing content, exit, unless clear is true.
 # ...
 
-# Change source path
+# Switch to root location
+os.chdir(orginalPath)
+# Switch to source location
 os.chdir(sourcePath)
-fullSourcePath = os.path.dirname(os.path.abspath(__file__))
+fullPath = os.path.dirname(os.path.abspath(__file__))
+
 # Generate files list
 files = []
-for (dirpath, dirnames, filenames) in walk(fullSourcePath):
+for (dirpath, dirnames, filenames) in os.walk(fullPath):
     for filename in filenames:
-        # Get all filenames in a folder
-        files.extend([dirpath+filename])
+        # Get all corresponding filenames in a folder
+        if filename.endswith(extensionFormats):
+            files.extend([[dirpath,filename]])
     # Prevent from getting filenames from sub-folders unless recursive is specified
-    if (not recursive):
+    if not recursive:
         break
 
 # Randomize generated file list
 shuffledFiles = files
 random.shuffle(shuffledFiles)
 
-# print(shuffledFiles)
-
 # Determine size of train, test and validate size percentages.
 totalFiles = len(shuffledFiles)
-trainSize = totalFiles//trainPercentage
-testSize = totalFiles//testPercentage
-validateSize = totalFiles//validatePercentage
+trainSize = round(totalFiles*trainPercentage)
+testSize = round(totalFiles*testPercentage)
+validateSize = round(totalFiles*validatePercentage)
 
 # Split selected files three sets
 lastTest = trainSize+testSize
-train_data = shuffledFiles[:trainSize]
-test_data = shuffledFiles[trainSize:lastTest]
-validate_data = shuffledFiles[lastTest:]
+sets = []
+sets.extend([shuffledFiles[:trainSize]])
+sets.extend([shuffledFiles[trainSize:lastTest]])
+sets.extend([shuffledFiles[lastTest:]])
 
-# If user didn't choose to stop the program,
-if not exitFlag:
-    # proceed to copy files into the sub-folders 
-    print("Copying files... Not!")
-    #...
-
-# End script
-exit()
+# Proceed to copy files into the sub-folders 
+for index, aSet in enumerate(sets):
+    for file in aSet:
+        if copy:
+            shutil.copyfile(file[0]+'/'+file[1], outPaths[index]+'/'+file[1])
+        else:
+            shutil.move(file[0]+'/'+file[1], outPaths[index]+'/'+file[1])
