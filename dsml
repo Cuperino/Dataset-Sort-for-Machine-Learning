@@ -1,4 +1,4 @@
-# !/usr/bin/python
+#!/usr/bin/python
 
 # dsml - Dataset Sort for Machine Learning
 # Description: Organize randomly selected files from a folder into training, testing and validation subfolder according to user specified percentages.
