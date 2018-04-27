@@ -36,14 +36,15 @@ parser = argparse.ArgumentParser(prog="dsml",
     epilog="dsml - Dataset Sort for Machine Learning by Javier O. Cordero Pérez, licensed under the MIT License",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument('integers', metavar='N', type=int, nargs='*', default='60 20 20', help='specify percentage groups in which to split the files: [train] [test] [validate]')
+parser.add_argument('integers', metavar='N', type=int, nargs='*', default='80 20 0', help='specify percentage groups in which to split the files: [train] [test] [validate]')
 # parser.add_argument('labels', metavar='N', type=open, nargs='*', help='specify labels of percentage groups')
 parser.add_argument('-R', dest='recursive', action='store_true', help='search files from subdirectories, recursively')
 parser.add_argument('-m', dest='move', action='store_true', help='move files, default="copy files"')
 # parser.add_argument('-cl', dest='clear', action='store_true', help='empty output folders if they contain files')
 parser.add_argument('-e', dest='extensions', nargs='*', default='.png .PNG .jpg .JPG .jpeg .JPEG', help='specify file extensions to filter with')
+parser.add_argument('-a', dest='also', nargs='*', default='.xml', help='Also copy or move files that share the same name as the filtered files, if they end with the following extensions')
 parser.add_argument('--source', dest='source', default='./', help='path to source folder')
-parser.add_argument('--destination', dest='destination', default='./', help='path to destination folder')
+parser.add_argument('--destination', dest='destination', default='../', help='path to destination folder')
 args = parser.parse_args()
 
 # Get fractions' denominator: the sum of all inputed percentages
@@ -57,8 +58,10 @@ recursive = args.recursive
 copy = not args.move
 # clear = args.clear
 
-# Parse extensions as tuples
-extensionFormats = tuple(args.extensions)
+# Parse extensions as tuples. Copy files with these extensions 
+extensionFormats = tuple(args.extensions.split())
+# Also take files with the same name and these extensions
+alsoExtensions = args.also.split()
 
 # Add '/' at end of source and destination paths
 if args.source.endswith(('/')):
@@ -107,11 +110,16 @@ if trainPercentage<0 or testPercentage<0 or validatePercentage<0:
 # PROCESS
 
 # Prepare output folders
-# Create set subdirectories if they don't exist
-orginalPath = os.path.dirname(os.path.abspath(__file__))
+# Switch to root location
+orginalPath = os.getcwd()
+# Switch to root location
+os.chdir(orginalPath)
+# Switch to source location
 os.chdir(outputPath)
-fullPath = os.path.dirname(os.path.abspath(__file__))
+# fullPath = os.path.dirname(os.getcwd())
+fullPath = os.getcwd()
 outPaths = [fullPath+"/train", fullPath+"/test", fullPath+"/validate"]
+# Create set subdirectories if they don't exist
 for path in outPaths:
     if not os.path.exists(path):
         os.makedirs(path)
@@ -123,7 +131,7 @@ for path in outPaths:
 os.chdir(orginalPath)
 # Switch to source location
 os.chdir(sourcePath)
-fullPath = os.path.dirname(os.path.abspath(__file__))
+fullPath = orginalPath
 
 # Generate files list
 files = []
@@ -157,6 +165,22 @@ sets.extend([shuffledFiles[lastTest:]])
 for index, aSet in enumerate(sets):
     for file in aSet:
         if copy:
+            altFilesRoot = file[1][::-1].split('.',1)[1][::-1]
+            # If exists
             shutil.copyfile(file[0]+'/'+file[1], outPaths[index]+'/'+file[1])
+            for extension in alsoExtensions:
+                altFile = altFilesRoot + extension
+                try:
+                    shutil.copyfile(file[0]+'/'+altFile, outPaths[index]+'/'+altFile)
+                except:
+                    print("Failed to copy", altFile)
         else:
+            altFilesRoot = file[1][::-1].split('.',1)[1][::-1]
+            # If exists
             shutil.move(file[0]+'/'+file[1], outPaths[index]+'/'+file[1])
+            for extension in alsoExtensions:
+                altFile = altFilesRoot + extension
+                try:
+                    shutil.copyfile(file[0]+'/'+altFile, outPaths[index]+'/'+altFile) 
+                except:
+                    print("Failed to copy", altFile)
